@@ -9,3 +9,9 @@ source .venv/bin/activate
 pip install --upgrade pip
 pip install -r requirements.txt
 ```
+
+To update requirements.txt
+
+```
+pip freeze > requirements.txt
+```

@@ -37,3 +37,16 @@ tornado==6.3.3
 traitlets==5.10.0
 urllib3==2.0.4
 wcwidth==0.2.6
+jupyterlab==3.6.3
+matplotlib==3.7.1
+pandas==2.0.1
+numpy==1.23.5
+seaborn==0.12.2
+statsmodels==0.13.5
+scikit-learn==1.2.2
+pydot
+protobuf
+Keras
+tensorflow-hub
+tensorflow-docs
+tensorflow

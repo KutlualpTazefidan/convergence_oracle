@@ -50,3 +50,4 @@ Keras
 tensorflow-hub
 tensorflow-docs
 tensorflow
+magapi-wrapper

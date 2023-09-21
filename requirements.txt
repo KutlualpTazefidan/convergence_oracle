@@ -51,3 +51,4 @@ tensorflow-hub
 tensorflow-docs
 tensorflow
 magapi-wrapper
+dotenv

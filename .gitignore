@@ -6,6 +6,10 @@ __pycache__/
 # C extensions
 *.so
 
+# BERTopic models
+
+.brt
+
 # Distribution / packaging
 .Python
 build/

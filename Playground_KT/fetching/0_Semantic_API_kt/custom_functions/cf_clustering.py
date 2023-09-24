@@ -139,7 +139,7 @@ def add_topic_labels(df,topics,proba,model):
     display(df.head())
     return df
 
-def visualize_intertopic_distances_3d(filename_prefix,df,topics,model,umap_embeddings):
+def visualize_intertopic_distances_3d(filename_prefix,df,topics,model,umap_embeddings,include_unclassified=False):
     
     # Step 1: Reduce Embeddings to 3D using UMAP
     def reduce_to_3d(embeddings):
@@ -151,7 +151,6 @@ def visualize_intertopic_distances_3d(filename_prefix,df,topics,model,umap_embed
     def calculate_centroids(umap_embeddings, topics):
         unique_topics = np.unique(topics)
         centroids = np.zeros((len(unique_topics), 3))  # Initialize centroids array
-
         for i, topic in enumerate(unique_topics):
             # Find indices of documents belonging to the current topic
             topic_indices = np.where(topics == topic)[0]
@@ -168,8 +167,8 @@ def visualize_intertopic_distances_3d(filename_prefix,df,topics,model,umap_embed
         return centroids
 
     # Step 3: Visualization of Intertopic Distances in 3D
-    def plot_intertopic_distances(centroids, topics,model):
-        
+    def plot_intertopic_distances(centroids, topics,model,include_unclassified):
+            
         topic_dict = model.get_topics()
         best_labels  = []
         for i in range(len(topic_dict)):
@@ -184,6 +183,12 @@ def visualize_intertopic_distances_3d(filename_prefix,df,topics,model,umap_embed
         # Now you can calculate topic counts using np.bincount
         topic_counts = np.bincount(topics_shifted)
                 
+        if not include_unclassified:
+            if -1 in topic_dict:
+                topic_counts = topic_counts[1:]
+                centroids = centroids[1:]
+                best_labels.pop(0)
+        # print("topics: ",topics)
         # Calculate the sphere radius based on topic count
         sphere_radius = np.cbrt(topic_counts)
         
@@ -197,6 +202,7 @@ def visualize_intertopic_distances_3d(filename_prefix,df,topics,model,umap_embed
         # Create a scatter plot with points for each topic centroid
         fig = go.Figure()
         for i, centroid in enumerate(centroids):
+            
             # Capitalize the first letter of the topic label
             capitalized_label = best_labels[i].capitalize()
             if i == len(normalized_radius)-1: 
@@ -211,7 +217,7 @@ def visualize_intertopic_distances_3d(filename_prefix,df,topics,model,umap_embed
                 z=[centroid[2]],
                 mode='markers',
                 marker=dict(
-                    size=sphere_radius[i]*5, 
+                    size=sphere_radius[i], 
                     color= rgb_colors[i],
                     colorscale='Viridis_r',
                     opacity=0.6,
@@ -277,4 +283,4 @@ def visualize_intertopic_distances_3d(filename_prefix,df,topics,model,umap_embed
     print("Step 2/3: Calculating centroids ...")
     centroids = calculate_centroids(umap_embeddings, topics)  # Step 2
     print("Step 3/3: Visualizing intertopic distances ...")
-    plot_intertopic_distances(centroids, topics,model)  # Step 3
+    plot_intertopic_distances(centroids, topics,model,include_unclassified)  # Step 3

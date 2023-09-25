@@ -14,6 +14,7 @@ To update requirements.txt
 
 ```
 pip freeze > requirements.txt
+pip freeze > requirements_kt.txt
 ```
 
 ```sh

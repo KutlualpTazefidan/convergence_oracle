@@ -21,10 +21,13 @@ from plotly.express.colors import sample_colorscale
 from IPython.display import display
 
 
-def extract_topics_with_bertopic(filepath, input_column_name, columns_to_drop, min_topic_size, fine_tune_label, ngram,years=None):
+def extract_topics_with_bertopic(input_column_name, columns_to_drop, min_topic_size, fine_tune_label, ngram,years=None,filepath=None,folder_path=None):
     
     print("Step 1/7: Loading the dataset ...")
-    df = load_csv_file_to_df(filepath)
+    if folder_path:
+        df = combine_csv_files_to_df(folder_path)
+    else:
+        df = load_csv_file_to_df(filepath)
     if years: df = df[df['year'].isin(years)]
     print("Step 2/7: Cleaning the dataset ...")
     df = clean_dataset(df)

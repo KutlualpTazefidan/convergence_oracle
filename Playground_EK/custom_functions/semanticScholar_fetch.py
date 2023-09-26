@@ -6,6 +6,7 @@ import string
 import json
 import psycopg2
 import os
+import sqlalchemy
 from dotenv import load_dotenv
 load_dotenv()
 

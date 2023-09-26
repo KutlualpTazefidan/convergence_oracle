@@ -44,23 +44,40 @@ def extract_topics_with_bertopic(input_column_name, columns_to_drop, min_topic_s
     df = add_topic_labels(df,topics,proba,model)
     return df,model,topics,proba,docs
 
-def visualize_bertopic_results(filename,df,topics,model,docs,column_name):
-    
-    print("Step 1/4: Creating barchart")
-    fig_bar_chart = model.visualize_barchart(top_n_topics=20)
-    print("Step 2/4: Creating 2d distance map")
+def visualize_bertopic_results(filename,df,topics,model,docs,input_column_name):
+    print("Step 1/7: Creating barchart")
+    fig_bar_chart = model.visualize_barchart(top_n_topics=10)
+    print("Step 2/7: Creating 2d distance map")
     fig_2d_distance_map = model.visualize_topics()
-    print("Step 3/4: Creating hierarchical topics")
+    print("Step 3/7: Creating 2d distance map")
+    fig_heatmap = model.visualize_heatmap()
+    print("Step 4/7: Creating 2d distance map")
+    fig_heatmap = model.visualize_heatmap()
+    print("Step 5/7: Creating hierarchical topics")
     hierarchical_topics = model.hierarchical_topics(docs)
     fig_hierarchical_clustering = model.visualize_hierarchy(hierarchical_topics=hierarchical_topics)
-    embeddings = model._extract_embeddings(df[column_name].to_list(), method="document")
+    print("Step 6/7: Creating visualize hierarchical documents map")
+    embeddings = model._extract_embeddings(df[input_column_name].to_list(), method="document")
+    # sentence_model = SentenceTransformer("all-MiniLM-L6-v2")
+    # embeddings2 = sentence_model.encode(docs, show_progress_bar=False)
+    # display("embeddings2",embeddings2)
+    
+    try:
+        fig_hierarchy_in_doc_topics = model.visualize_hierarchical_documents(docs, hierarchical_topics, embeddings=embeddings)
+        pyo.plot(fig_hierarchy_in_doc_topics, filename="./plots/"+filename+'_hierarchy_in_doc_topics_'+str(len(topics))+"_topics.html")
+        display(fig_hierarchy_in_doc_topics)
+    except Exception as e:
+        # Handle the exception (e.g., print an error message)
+        print(f"An error occurred during fig_hierarchy_in_doc_topics")
     pyo.plot(fig_2d_distance_map, filename="./plots/"+filename+'_2d_distance_map_'+str(len(topics))+"_topics.html")
     pyo.plot(fig_bar_chart, filename="./plots/"+filename+'_bar_chart_'+str(len(topics))+"_topics.html")
+    pyo.plot(fig_heatmap, filename="./plots/"+filename+'_heatmap_'+str(len(topics))+"_topics.html")
     pyo.plot(fig_hierarchical_clustering, filename="./plots/"+filename+'_hierarchical_clustering_'+str(len(topics))+"_topics.html")
-    display(fig_2d_distance_map)
     display(fig_bar_chart)
+    display(fig_2d_distance_map)
+    display(fig_heatmap)
     display(fig_hierarchical_clustering)
-    print("Step 4/4: Creating 3d intertopic distances map")
+    print("Step 7/7: Creating 3d intertopic distances map")
     visualize_intertopic_distances_3d(filename,df,topics,model,embeddings,include_unclassified=False)
 
 # This function is for debugging / to show negative impact of study field if included

@@ -52,3 +52,4 @@ tensorflow-docs
 tensorflow
 magapi-wrapper
 python-dotenv
+bertopic

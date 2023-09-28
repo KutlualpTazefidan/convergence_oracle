@@ -75,7 +75,7 @@ def cleaning_data_from_sql(dataframe):
     df = remove_stopwords_from_column(df,title_plus_abstract)
     
     ## drop the columns not needed for analysis
-    print("Step 5/7: Dropping columns ...")
+    print("Step 5/7: We longer drop columns, its not needed ...")
     # df = df[columns_to_keep]
     return df
     

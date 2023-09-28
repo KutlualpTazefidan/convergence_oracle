@@ -241,6 +241,7 @@ def reduce_to_3d(embeddings):
     return umap_embeddings
 
 # Calculate Centroids in 3D Space
+## caluculate mean of sphere in 3D space 
 def calculate_centroids(umap_embeddings, topics):
     unique_topics = np.unique(topics)
     centroids = np.zeros((len(unique_topics), 3))  # Initialize centroids array
@@ -277,6 +278,7 @@ def plot_intertopic_distances(centroids, topics,model,include_unclassified,filen
             
     if not include_unclassified:
         if -1 in topic_dict:
+            #size of ball 
             topic_counts = topic_counts[1:]
             centroids = centroids[1:]
             best_labels.pop(0)

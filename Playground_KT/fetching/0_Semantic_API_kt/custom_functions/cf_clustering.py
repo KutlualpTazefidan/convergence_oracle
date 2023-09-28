@@ -19,15 +19,15 @@ import plotly.graph_objs as go
 import plotly.offline as pyo
 from plotly.express.colors import sample_colorscale
 from IPython.display import display
+import os
 
-
-def extract_topics_with_bertopic(input_column_name, columns_to_drop, min_topic_size, fine_tune_label, ngram,years=None,filepath=None,folder_path=None):
+def extract_topics_with_bertopic(input_column_name, columns_to_drop, min_topic_size, fine_tune_label, ngram,years=None,file_path=None,folder_path=None):
     
     print("Step 1/7: Loading the dataset ...")
     if folder_path:
         df = combine_csv_files_to_df(folder_path)
     else:
-        df = load_csv_file_to_df(filepath)
+        df = load_csv_file_to_df(file_path)
     if years: df = df[df['year'].isin(years)]
     print("Step 2/7: Cleaning the dataset ...")
     df = clean_dataset(df)
@@ -44,19 +44,17 @@ def extract_topics_with_bertopic(input_column_name, columns_to_drop, min_topic_s
     df = add_topic_labels(df,topics,proba,model)
     return df,model,topics,proba,docs
 
-def visualize_bertopic_results(filename,df,topics,model,docs,input_column_name):
-    print("Step 1/7: Creating barchart")
+def visualize_bertopic_results(filename,df,topics,model,docs,input_column_name,time_column_name):
+    print("Step 1/8: Creating barchart")
     fig_bar_chart = model.visualize_barchart(top_n_topics=10)
-    print("Step 2/7: Creating 2d distance map")
+    print("Step 2/8: Creating 2d distance map")
     fig_2d_distance_map = model.visualize_topics()
-    print("Step 3/7: Creating 2d distance map")
+    print("Step 3/8: Creating 2d distance map")
     fig_heatmap = model.visualize_heatmap()
-    print("Step 4/7: Creating 2d distance map")
-    fig_heatmap = model.visualize_heatmap()
-    print("Step 5/7: Creating hierarchical topics")
+    print("Step 5/8: Creating hierarchical topics")
     hierarchical_topics = model.hierarchical_topics(docs)
     fig_hierarchical_clustering = model.visualize_hierarchy(hierarchical_topics=hierarchical_topics)
-    print("Step 6/7: Creating visualize hierarchical documents map")
+    print("Step 6/8: Creating visualize hierarchical documents map")
     embeddings = model._extract_embeddings(df[input_column_name].to_list(), method="document")
     # sentence_model = SentenceTransformer("all-MiniLM-L6-v2")
     # embeddings2 = sentence_model.encode(docs, show_progress_bar=False)
@@ -77,8 +75,19 @@ def visualize_bertopic_results(filename,df,topics,model,docs,input_column_name):
     display(fig_2d_distance_map)
     display(fig_heatmap)
     display(fig_hierarchical_clustering)
-    print("Step 7/7: Creating 3d intertopic distances map")
-    visualize_intertopic_distances_3d(filename,df,topics,model,embeddings,include_unclassified=False)
+    print("Step 7/8: Creating 3d intertopic distances map")
+    try:
+        visualize_intertopic_distances_3d(filename,df,topics,model,embeddings,include_unclassified=False)
+    except Exception as e:
+        # Handle the exception (e.g., print an error message)
+        print(f"An error occurred during visualize_intertopic_distances_3d")
+        
+    print("Step 8/8: Creating 3d intertopic distances map")
+    time_column=df[time_column_name]
+    topics_over_time = model.topics_over_time(docs, time_column)
+    fig_topics_over_time = model.visualize_topics_over_time(topics_over_time, top_n_topics=20)
+    pyo.plot(fig_topics_over_time, filename="./plots/"+filename+'_fig_topics_over_time_'+str(len(topics))+"_topics.html")
+    display(fig_topics_over_time)
 
 # This function is for debugging / to show negative impact of study field if included
 def include_study_field(df):
@@ -107,16 +116,20 @@ def load_csv_file_to_df(file_path):
     return df
 
 def combine_csv_files_to_df(folder_path):
-    combined_df = pd.DataFrame()
+    df_list = []
+    
     # Iterate through all files in the folder
     for filename in os.listdir(folder_path):
         if filename.endswith('.csv'):
             # Construct the full path to the CSV file
             file_path = os.path.join(folder_path, filename)
-            # Read the CSV file into a DataFrame
-            csv_df = load_csv_file_to_df(file_path)
-            # Concatenate the current DataFrame with the combined DataFrame
-            combined_df = pd.concat([combined_df, csv_df], ignore_index=True)
+            # Read the CSV file into a DataFrame and append it to the list
+            csv_df = pd.read_csv(file_path)
+            df_list.append(csv_df)
+    
+    # Concatenate all DataFrames in the list into a single DataFrame
+    combined_df = pd.concat(df_list, ignore_index=True)
+    
     return combined_df
 
 def clean_dataset(df):

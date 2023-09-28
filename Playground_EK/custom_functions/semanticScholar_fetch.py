@@ -148,13 +148,13 @@ def main_semantic_scholar_api(start_date, end_date, journal):
         # change the data to string first
         merged_data_as_str = merged_data.astype(str)
         # function exists below
-        dataframe_to_sql(merged_data_as_str, str(year), journal)
+        dataframe_to_local_sql(merged_data_as_str, str(year), journal)
         time.sleep(sleep_duration)
     
     # Print the total length of unfiltered data after all iterations
     print("Length of the data", length_df)
     
-def dataframe_to_sql(infun_dataframe, infun_year, infun_journal):
+def dataframe_to_local_sql(infun_dataframe, infun_year, infun_journal):
     # create the table name
     table_name = infun_journal + '_' + infun_year
     #read the database string from the .env

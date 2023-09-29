@@ -144,3 +144,4 @@ dmypy.json
 data/
 models/
 .brt
+.pem

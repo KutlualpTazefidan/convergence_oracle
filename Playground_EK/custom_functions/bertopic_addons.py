@@ -29,6 +29,8 @@ import json
 import psycopg2
 import os
 import sqlalchemy
+from umap import UMAP
+import pandas as pd
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -36,7 +38,14 @@ load_dotenv()
 title_plus_abstract = 'title_abstract'
 columns_to_keep = ['paperId', 'title', 'abstract', 'title_abstract', 'year', 'referenceCount', 'citationCount', 'influentialCitationCount']
 
-def pull_sql_database():
+
+
+## ========    DATA PULL    =======================================================
+
+
+
+## LOCAL DATA PULL 
+def pull_local_sql_database():
     
     print("Step 1/7: Loading the dataset ...")
     DB_STRING = os.getenv('DB_STRING')
@@ -57,6 +66,57 @@ def pull_sql_database():
             all_dataframes=pd.concat([all_dataframes, df])
             
     return all_dataframes
+
+## AWS DATA PULL 
+def pull_aws_sql_database(sql_table_name):
+    
+    print("Step 1/7: Loading the dataset ...")
+    DB_STRING = os.getenv('DB_STRING_AWS')
+    # Defining the Engine
+    engine = sqlalchemy.create_engine(DB_STRING)
+    
+    with engine.connect() as conn, conn.begin():  
+        aws_dataframe = pd.read_sql_table(sql_table_name, conn) 
+            
+    return aws_dataframe
+
+
+
+
+## ========    DATA PUSH TO AWS    =======================================================
+
+
+
+
+
+def localSQL_to_awsSQL(table_name):
+    ## pulls and combines everything in the local database into one dataframe
+    raw_combined_dfs = pull_local_sql_database()
+    ## data is cleaned 
+    combined_cleaned_dataframe = cleaning_data_from_sql(raw_combined_dfs)
+    ## 
+    dataframe_to_aws_sql(combined_cleaned_dataframe, table_name)
+    ## return combined dataframe
+    return combined_dataframe
+    
+
+## i need a function that then pushes back out to the cloud database
+# input to function is table name
+## code to connect to AWS 
+def dataframe_to_aws_sql(infun_df, table_name):
+    DB_STRING = os.getenv('DB_STRING_AWS')
+    # Defining the Engine
+    engine = sqlalchemy.create_engine(DB_STRING)
+    engine.connect()
+    with engine as connection:
+        infun_df.to_sql(table_name, connection, if_exists='replace', index=False)
+        
+
+
+
+## ========    DATA CLEAN    =======================================================
+
+
 
 ### clean data first, then extract topics
 def cleaning_data_from_sql(dataframe):
@@ -105,15 +165,21 @@ def remove_stopwords(text):
     filtered_tokens = [word for word in tokens if word.lower() not in ENGLISH_STOP_WORDS]
     return " ".join(filtered_tokens)
 
+
+
+
+## ========    BERTOPIC EXTRACTION    =======================================================
+
+
+
 ## extract topics
-def extract_topics_with_bertopic_eric(dataframe, min_topic_size, fine_tune_label, ngram):
+def extract_topics_with_bertopic(dataframe, min_topic_size, fine_tune_label, ngram):
     print("Step 6/7: Extracting topics ...")
     model, topics = extract_topics(dataframe, min_topic_size=min_topic_size, fine_tune_label=fine_tune_label, ngram=ngram)
     
     print("Step 7/7: Adding topic labels to the df ...")
     df = add_topic_labels(dataframe,topics,model)
     return df,model,topics
-
 
 
 # Function to cluster data using BERTopic
@@ -157,4 +223,29 @@ def remove_stopwords_from_column(df, column_name):
     df[column_name] = df[column_name].apply(remove_stopwords)
     return df
     
-    
+
+
+## ========    BERTOPIC VISUALIZATION ADDITIONS    =======================================================
+
+
+
+def merge_embeddings_2_df(infunc_df):
+    ## embeddings ====== calculates many vectors that then get reduced 
+    embeddings = model._extract_embeddings(df['title_abstract'].to_list(), method="document")
+
+    ### embeddings in 3D space 
+    reduced_embeddings = reduce_to_3d(embeddings)
+
+    ### dataframe of embeddings in 3D space
+    reduced_embeddings_dataframe= pd.DataFrame(reduced_embeddings)
+    # rename column names
+    renamed_embeddings_dataframe = reduced_embeddings_dataframe.rename(columns={0: 'x_vector', 1: 'y_vector', 2: 'z_vector'})
+    ## merge vectors into dataframe
+    vectorized_og_df = pd.concat([df, renamed_embeddings_dataframe], axis=1)
+    return vectorized_og_df
+
+
+def reduce_to_3d(embeddings):
+    reducer = UMAP(n_components=3)  # You can adjust n_components as needed
+    umap_embeddings = reducer.fit_transform(embeddings)
+    return umap_embeddings

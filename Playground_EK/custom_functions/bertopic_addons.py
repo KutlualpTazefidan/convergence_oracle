@@ -19,69 +19,129 @@ import plotly.graph_objs as go
 import plotly.offline as pyo
 from plotly.express.colors import sample_colorscale
 from IPython.display import display
+from sqlalchemy import create_engine, inspect, text
+import requests
+import json
+import pandas as pd
+import time
+import string
+import json
+import psycopg2
+import os
+import sqlalchemy
+from umap import UMAP
+import pandas as pd
+from dotenv import load_dotenv
+load_dotenv()
 
-def extract_topics_with_bertopic(input_column_name, columns_to_drop, min_topic_size, fine_tune_label, ngram,years=None,filepath=None,folder_path=None):
+## new column name
+title_plus_abstract = 'title_abstract'
+columns_to_keep = ['paperId', 'title', 'abstract', 'title_abstract', 'year', 'referenceCount', 'citationCount', 'influentialCitationCount']
+
+
+
+## ========    DATA PULL    =======================================================
+
+
+
+## LOCAL DATA PULL 
+def pull_local_sql_database():
     
     print("Step 1/7: Loading the dataset ...")
-    if folder_path:
-        df = combine_csv_files_to_df(folder_path)
-    else:
-        df = load_csv_file_to_df(filepath)
-    if years: df = df[df['year'].isin(years)]
+    DB_STRING = os.getenv('DB_STRING')
+    # Defining the Engine
+    engine = sqlalchemy.create_engine(DB_STRING)
+
+    inspector = inspect(engine)
+    table_names = inspector.get_table_names()
+    
+    ##### ========================================= REMOVE FOR LARGER ANALYSIS ============================
+    #table_names = table_names[3:10]
+    ##### ========================================= REMOVE FOR LARGER ANALYSIS ============================
+
+    all_dataframes = pd.DataFrame()
+    for index, sql_table_name in enumerate(table_names):
+        with engine.connect() as conn, conn.begin():  
+            df = pd.read_sql_table(sql_table_name, conn) 
+            all_dataframes=pd.concat([all_dataframes, df])
+            
+    engine.dispose()
+            
+    return all_dataframes
+
+## AWS DATA PULL 
+def pull_aws_sql_database(sql_table_name):
+    
+    print("Step 1/7: Loading the dataset ...")
+    DB_STRING = os.getenv('DB_STRING_AWS')
+    # Defining the Engine
+    engine = sqlalchemy.create_engine(DB_STRING)
+    
+    with engine.connect() as conn, conn.begin():  
+        aws_dataframe = pd.read_sql_table(sql_table_name, conn) 
+            
+    return aws_dataframe
+
+
+
+
+## ========    DATA PUSH TO AWS    =======================================================
+
+
+
+
+
+def localSQL_to_awsSQL(table_name):
+    ## pulls and combines everything in the local database into one dataframe
+    raw_combined_dfs = pull_local_sql_database()
+    ## data is cleaned 
+    combined_cleaned_dataframe = cleaning_data_from_sql(raw_combined_dfs)
+    ## 
+    dataframe_to_aws_sql(combined_cleaned_dataframe, table_name)
+    ## return combined dataframe
+    return combined_cleaned_dataframe
+    
+
+## i need a function that then pushes back out to the cloud database
+# input to function is table name
+## code to connect to AWS 
+def dataframe_to_aws_sql(infun_df, table_name):
+    DB_STRING_AWS = os.getenv('DB_STRING_AWS')
+    # Defining the Engine
+    engine_aws = sqlalchemy.create_engine(DB_STRING_AWS)
+    engine_aws.connect()
+    with engine_aws.connect() as conn, conn.begin():  
+        infun_df.to_sql(table_name, conn, if_exists='replace', index=False)
+        
+
+
+
+## ========    DATA CLEAN    =======================================================
+
+
+
+### clean data first, then extract topics
+def cleaning_data_from_sql(dataframe):
+    ## clean up dataset 
+    # step 1: delete duplicates
+    # step 2: deletes rows with empty abstracts
     print("Step 2/7: Cleaning the dataset ...")
-    df = clean_dataset(df)
+    df = clean_dataset(dataframe)
+        
+    ## create column with title + abstract 
     print("Step 3/7: Creating the analysis column ...")
-    df = combine_columns(df,"title","abstract",input_column_name)
+    df[title_plus_abstract] = df['title'] + ' ' + df['abstract']
+    
     # df = include_study_field(df) # For debugging
     print("Step 4/7: Removing stopwords ...")
-    df = remove_stopwords_from_column(df,input_column_name)
-    print("Step 5/7: Dropping columns ...")
-    df = drop_columns(df,columns_to_drop)
-    print("Step 6/7: Extracting topics ...")
-    model, topics, proba, docs = extract_topics(df,input_column_name, min_topic_size=min_topic_size, fine_tune_label=fine_tune_label, ngram=ngram)
-    print("Step 7/7: Adding topic labels to the df ...")
-    df = add_topic_labels(df,topics,proba,model)
-    return df,model,topics,proba,docs
-
-# This function is for debugging / to show negative impact of study field if included
-def include_study_field(df):
-    def iterate_over_study_field(row):
-        # Combine 'title' and 'abstract' into a single column
-        combined_text = row['title_abstract']
-
-        # Check if 'fieldsOfStudy' exists and is not empty
-        if row['fieldsOfStudy']:
-            # Parse the string representation of the list into an actual list
-            fields_list = ast.literal_eval(row['fieldsOfStudy'])
-            # Remove single quotes from each field of study
-            cleaned_fields = [field.strip(" '") for field in fields_list]
-            # Join the cleaned fields with commas and spaces
-            field_of_study_str = ' '.join(cleaned_fields)
-            combined_text += ' ' + field_of_study_str
-        return combined_text
-        
-    # Apply the clean_text function to each row to create a new 'title_abstract' column
-    df.fillna('', inplace=True)
-    df['title_abstract'] = df.apply(iterate_over_study_field, axis=1)
+    df = remove_stopwords_from_column(df,title_plus_abstract)
+    
+    ## drop the columns not needed for analysis
+    print("Step 5/7: We longer drop columns, its not needed ...")
+    # df = df[columns_to_keep]
     return df
-
-def load_csv_file_to_df(file_path):
-    df = pd.read_csv(file_path)
-    return df
-
-def combine_csv_files_to_df(folder_path):
-    combined_df = pd.DataFrame()
-    # Iterate through all files in the folder
-    for filename in os.listdir(folder_path):
-        if filename.endswith('.csv'):
-            # Construct the full path to the CSV file
-            file_path = os.path.join(folder_path, filename)
-            # Read the CSV file into a DataFrame
-            csv_df = load_csv_file_to_df(file_path)
-            # Concatenate the current DataFrame with the combined DataFrame
-            combined_df = pd.concat([combined_df, csv_df], ignore_index=True)
-    return combined_df
-
+    
+    
 def clean_dataset(df):
     
     # Shuffle the DataFrame for randomness and reset the index
@@ -101,35 +161,33 @@ def clean_dataset(df):
     
     return df
 
-def combine_columns(df:pd.DataFrame,column_name_1:str,column_name_2:str,new_column_name:str):
-    if df[column_name_1].apply(lambda x: isinstance(x, list)).any():
-        df[column_name_1].apply(lambda x: x[0])
-    if df[column_name_2].apply(lambda x: isinstance(x, list)).any():
-        df[column_name_2].apply(lambda x: x[0])
-        
-    df[new_column_name] = df[column_name_1] + df[column_name_2]
-    return df
-
 # Remove stopwords from a text
 def remove_stopwords(text):
     tokens = text.split()
     filtered_tokens = [word for word in tokens if word.lower() not in ENGLISH_STOP_WORDS]
     return " ".join(filtered_tokens)
 
-def remove_stopwords_from_column(df, column_name):
-    # Apply the remove_stopwords function to the specified column
-    df[column_name] = df[column_name].apply(remove_stopwords)
-    return df
 
-def drop_columns(df,columns_to_drop):
-    if not columns_to_drop==[]:
-        df = df.drop(columns=columns_to_drop, axis=1)
-    return df
+
+
+## ========    BERTOPIC EXTRACTION    =======================================================
+
+
+
+## extract topics
+def extract_topics_with_bertopic(dataframe, min_topic_size, fine_tune_label, ngram):
+    print("Step 6/7: Extracting topics ...")
+    model, topics = extract_topics(dataframe, min_topic_size=min_topic_size, fine_tune_label=fine_tune_label, ngram=ngram)
+    
+    print("Step 7/7: Adding topic labels to the df ...")
+    df = add_topic_labels(dataframe,topics,model)
+    return df,model,topics
+
 
 # Function to cluster data using BERTopic
-def extract_topics(df,input_column_name,min_topic_size=50,fine_tune_label=False,ngram=2):  
+def extract_topics(df,min_topic_size=50,fine_tune_label=False,ngram=2):  
     # Extract documents from the 'title_abstract_studyfield' column
-    docs = df[input_column_name].tolist()
+    docs = df[title_plus_abstract].tolist()
     
     # Measure the start time for model fitting
     start_time = time.time()
@@ -147,29 +205,119 @@ def extract_topics(df,input_column_name,min_topic_size=50,fine_tune_label=False,
     print(f"Model fitting completed in {elapsed_time_minutes:.2f} minutes")
     
     # Return the model
-    return model,topics,proba,docs
-
-def get_topic_info(topic_dict, topic_code, indices):
-    result = topic_dict.get(topic_code, None)
-
-    if result is not None:
-        if isinstance(result, list) and len(result) > indices[0]:
-            result = result[indices[0]][indices[1]]
-        else:
-            return ""
-
-    return result
+    return model,topics
 
 # Expanding the df to include the topic labels
-def add_topic_labels(df,topics,proba,model):
+def add_topic_labels(df,topics,model):
     df['topic_code'] = topics
-    df['proba'] = proba
-    topic_dict = model.get_topics()
+    ## add one to topic code to match the index
+    df['topic_code'] = df['topic_code'] + 1
+    
+    topic_dict = model.get_topic_info()['Name']
     df['topic_list'] = df['topic_code'].apply(lambda x: topic_dict.get(x, []))
-    df['topic_1_label'] = df['topic_code'].apply(lambda x: get_topic_info(topic_dict, x, [0,0]))
-    df['topic_1_proba'] = df['topic_code'].apply(lambda x: get_topic_info(topic_dict, x, [0,1]))
-    df['topic_2_label'] = df['topic_code'].apply(lambda x: get_topic_info(topic_dict, x, [1,0]))
-    df['topic_2_proba'] = df['topic_code'].apply(lambda x: get_topic_info(topic_dict, x, [1,1]))
-    df['topic_3_label'] = df['topic_code'].apply(lambda x: get_topic_info(topic_dict, x, [2,0]))
-    df['topic_3_proba'] = df['topic_code'].apply(lambda x: get_topic_info(topic_dict, x, [2,1]))
+    
+    ## minus one to topic code to return to original value
+    df['topic_code'] = df['topic_code']-1
     return df
+     
+def remove_stopwords_from_column(df, column_name):
+    # Apply the remove_stopwords function to the specified column
+    df[column_name] = df[column_name].apply(remove_stopwords)
+    return df
+    
+
+
+## ========    BERTOPIC VISUALIZATION ADDITIONS    =======================================================
+
+def merge_embeddings_to_df(infunc_df,infun_model):
+    ## embeddings ====== calculates many vectors that then get reduced 
+    embeddings = infun_model._extract_embeddings(infunc_df['title_abstract'].to_list(), method="document")
+
+    ### embeddings in 3D space 
+    reduced_embeddings = reduce_to_3d(embeddings)
+
+    ### dataframe of embeddings in 3D space
+    reduced_embeddings_dataframe= pd.DataFrame(reduced_embeddings)
+    # rename column names
+    renamed_embeddings_dataframe = reduced_embeddings_dataframe.rename(columns={0: 'x_vector', 1: 'y_vector', 2: 'z_vector'})
+    ## merge vectors into dataframe
+    vectorized_og_df = pd.concat([infunc_df, renamed_embeddings_dataframe], axis=1)
+    return vectorized_og_df
+
+def reduce_to_3d(embeddings):
+    reducer = UMAP(n_components=3)  # You can adjust n_components as needed
+    umap_embeddings = reducer.fit_transform(embeddings)
+    return umap_embeddings
+
+
+
+# ============================ TOPIC + PROBABILITY DATAFRAME 
+
+
+def dataframing_topic_proba(infunch_model):
+    topics_and_probabilities = infunch_model.get_topics()
+    topic_code_expansion = list(topics_and_probabilities.keys())*10
+    topic_code_expansion.sort()
+    flat_list = list()
+    for sub_list in topics_and_probabilities.values():
+        flat_list += sub_list
+    topics1=[]
+    probabilities=[]
+    for x in flat_list:
+        topics1.append(x[0])
+        probabilities.append(x[1])
+        
+    topic_proba_dict = {'topic_code': topic_code_expansion, 'topic': topics1, 'probability':probabilities}
+    topic_prob_dict = pd.DataFrame(topic_proba_dict)
+    return topic_prob_dict
+
+
+## ================================= BERTOPIC STUFF 
+
+
+dictionary_for_saved_data = {'aws_raw_sql_name':[],
+                             'aws_vectorized_sql_name': [],
+                             'aws_topic_proba_sql_name':[],
+                             'model_name_filepath':[]
+                             }
+
+
+# def = pull_local_aws_database(sql_table_name): 
+# ====== so give a name
+def run_bertopic_model_push_SQLdata(aws_raw_name, aws_vectorized_name, aws_topic_proba_name, model_name):
+    raw_aws_dfs = pull_aws_sql_database(aws_raw_name)
+    ## cleans data
+    cleaned_local_df = cleaning_data_from_sql(raw_aws_dfs)
+    
+    #### =============================    VARIABLES 
+    min_topic_size = 50
+    fine_tune_label = False
+    ngram = 3
+    
+    #### =============================    VARIABLES 
+    print("Step 1/4: RUNNING BERTOPIC ...")
+    topified_df,model,topics = extract_topics_with_bertopic(cleaned_local_df, min_topic_size, fine_tune_label, ngram)
+    
+    ## save nmodel
+    print("Step 2/4: SAVING MODEL ...")
+    model.save("./nonSQL_database/" + model_name, serialization="pickle")
+    
+    # 2. VECTORS & TOPIFIED DATA
+    print("Step 3/4: CREATING VECTORIZED TABLE ...")
+    vectorized_df = merge_embeddings_to_df(topified_df,model)
+    ## push table to AWS
+    dataframe_to_aws_sql(vectorized_df, aws_vectorized_name)
+    # def = pull_local_aws_database(sql_table_name): 
+    
+    ## dataframe _ of topics and probabilities
+    print("Step 3/4: CREATING TOPIC PROBA ...")
+    topic_proba_df = dataframing_topic_proba(model)
+    ## push table to AWS
+    dataframe_to_aws_sql(topic_proba_df, aws_topic_proba_name)
+    
+    dictionary_for_saved_data['aws_raw_sql_name'].append(aws_raw_name)
+    dictionary_for_saved_data['aws_vectorized_sql_name'].append(aws_vectorized_name)
+    dictionary_for_saved_data['aws_topic_proba_sql_name'].append(aws_topic_proba_name)
+    dictionary_for_saved_data['model_name_filepath'].append(model_name)
+    
+    return dictionary_for_saved_data

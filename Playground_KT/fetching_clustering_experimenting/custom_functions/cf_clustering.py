@@ -23,21 +23,7 @@ import os
 
 def extract_topics_with_bertopic(input_column_name, columns_to_drop, min_topic_size, fine_tune_label, ngram,years=None,file_path=None,folder_path=None):
     
-    print("Step 1/7: Loading the dataset ...")
-    if folder_path:
-        df = combine_csv_files_to_df(folder_path)
-    else:
-        df = load_csv_file_to_df(file_path)
-    if years: df = df[df['year'].isin(years)]
-    print("Step 2/7: Cleaning the dataset ...")
-    df = clean_dataset(df)
-    print("Step 3/7: Creating the analysis column ...")
-    df = combine_columns(df,"title","abstract",input_column_name)
-    # df = include_study_field(df) # For debugging
-    print("Step 4/7: Removing stopwords ...")
-    df = remove_stopwords_from_column(df,input_column_name)
-    print("Step 5/7: Dropping columns ...")
-    df = drop_columns(df,columns_to_drop)
+    df = prepare_dataset_for_modeling(input_column_name,columns_to_drop,file_path=file_path,folder_path=folder_path)
     print("Step 6/7: Extracting topics ...")
     model, topics, proba,docs = extract_topics(df,input_column_name, min_topic_size=min_topic_size, fine_tune_label=fine_tune_label, ngram=ngram)
     print("Step 7/7: Adding topic labels to the df ...")
@@ -88,6 +74,25 @@ def visualize_bertopic_results(filename,df,topics,model,docs,input_column_name,t
     fig_topics_over_time = model.visualize_topics_over_time(topics_over_time, top_n_topics=20)
     pyo.plot(fig_topics_over_time, filename="./plots/"+filename+'_fig_topics_over_time_'+str(len(topics))+"_topics.html")
     display(fig_topics_over_time)
+
+# Preparing the dataset for modeling
+def prepare_dataset_for_modeling(input_column_name,columns_to_drop,years=None,file_path=None,folder_path=None):
+    print("Step 1/7: Loading the dataset ...")
+    if folder_path:
+        df = combine_csv_files_to_df(folder_path)
+    else:
+        df = load_csv_file_to_df(file_path)
+    if years: df = df[df['year'].isin(years)]
+    print("Step 2/7: Cleaning the dataset ...")
+    df = clean_dataset(df)
+    print("Step 3/7: Creating the analysis column ...")
+    df = combine_columns(df,"title","abstract",input_column_name)
+    # df = include_study_field(df) # For debugging
+    print("Step 4/7: Removing stopwords ...")
+    df = remove_stopwords_from_column(df,input_column_name)
+    print("Step 5/7: Dropping columns ...")
+    df = drop_columns(df,columns_to_drop)
+    return df
 
 # This function is for debugging / to show negative impact of study field if included
 def include_study_field(df):

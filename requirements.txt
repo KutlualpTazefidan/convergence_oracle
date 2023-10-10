@@ -54,3 +54,4 @@ pydot
 protobuf
 magapi-wrapper
 bertopic
+xgboost

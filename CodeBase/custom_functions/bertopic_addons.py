@@ -6,6 +6,7 @@ from bertopic import BERTopic
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
 from sklearn.preprocessing import LabelEncoder
+from sklearn.feature_extraction.text import CountVectorizer
 import matplotlib.pyplot as plt
 import time
 from umap import UMAP
@@ -87,10 +88,6 @@ def pull_aws_sql_database(sql_table_name):
 
 ## ========    DATA PUSH TO AWS    =======================================================
 
-
-
-
-
 def localSQL_to_awsSQL(table_name):
     ## pulls and combines everything in the local database into one dataframe
     raw_combined_dfs = pull_local_sql_database()
@@ -113,6 +110,14 @@ def dataframe_to_aws_sql(infun_df, table_name):
     with engine_aws.connect() as conn, conn.begin():  
         infun_df.to_sql(table_name, conn, if_exists='replace', index=False)
         
+# to push custom df to aws db
+def localDF_to_awsSQL(table_name,df):
+    ## data is cleaned 
+    combined_cleaned_dataframe = cleaning_data_from_sql(df)
+    ## 
+    dataframe_to_aws_sql(combined_cleaned_dataframe, table_name)
+    ## return combined dataframe
+    return combined_cleaned_dataframe
 
 
 
@@ -185,16 +190,20 @@ def extract_topics_with_bertopic(dataframe, min_topic_size, fine_tune_label, ngr
 
 
 # Function to cluster data using BERTopic
-def extract_topics(df,min_topic_size=50,fine_tune_label=False,ngram=2):  
+def extract_topics(df,min_topic_size=50,fine_tune_label=False,ngram=2): 
     # Extract documents from the 'title_abstract_studyfield' column
     docs = df[title_plus_abstract].tolist()
+    
+    # It's helpful to decrease the memory usage
+    # vectorizer_model = CountVectorizer(min_df=10)
+    vectorizer_model = None
     
     # Measure the start time for model fitting
     start_time = time.time()
     
     # Create and fit a BERTopic model
     representation_model = KeyBERTInspired() if fine_tune_label else None
-    model = BERTopic(language="english", n_gram_range=(1, ngram), min_topic_size=min_topic_size,representation_model=representation_model)
+    model = BERTopic(language="english", n_gram_range=(1, ngram), vectorizer_model=vectorizer_model,min_topic_size=min_topic_size,representation_model=representation_model)
 
     topics, proba = model.fit_transform(docs)
     
@@ -280,7 +289,6 @@ dictionary_for_saved_data = {'aws_raw_sql_name':[],
                              'aws_topic_proba_sql_name':[],
                              'model_name_filepath':[]
                              }
-
 
 # def = pull_local_aws_database(sql_table_name): 
 # ====== so give a name

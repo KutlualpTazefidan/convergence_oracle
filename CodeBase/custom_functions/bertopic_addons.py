@@ -112,6 +112,18 @@ def dataframe_to_aws_sql(infun_df, table_name):
     engine_aws.connect()
     with engine_aws.connect() as conn, conn.begin():  
         infun_df.to_sql(table_name, conn, if_exists='replace', index=False)
+
+        
+## i need a function that then pushes back out to the cloud database
+# input to function is table name
+## code to connect to AWS 
+def dataframe_to_final_local_sql(infun_df, table_name):
+    DB_STRING = os.getenv('DB_STRING_final')
+    # Defining the Engine
+    engine = sqlalchemy.create_engine(DB_STRING)
+    engine.connect()
+    with engine.connect() as conn, conn.begin():  
+        infun_df.to_sql(table_name, conn, if_exists='replace', index=False)
         
 
 

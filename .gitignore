@@ -144,3 +144,5 @@ dmypy.json
 data/
 models/
 .brt
+
+*.csv

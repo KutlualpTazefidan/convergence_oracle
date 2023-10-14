@@ -26,9 +26,7 @@ import plotly.graph_objects as go
 ### Print out 5 random sample from df 
 ### (Hint: apply the function sample() on df)
 
-
-
-st.title('Convergence Oracle')
+st.header('Convergence Oracle')
 st.image('output.png')
 # st.write('wrire whatever you want')
 
@@ -46,39 +44,21 @@ st.markdown('''Science Data
 
 st.dataframe(df_sample)
 
-#print(df_sample)
-
-### 
-
 Topic = df['topic_list'].unique()
-
-#print(Topic)
-
 ### 2.2 Display the data for an island you choose from the dataframe 
 my_Topic = df['topic_list']
 my_Topic_df =df[df['topic_list'] == my_Topic]
-#print(my_Topic_df.head())
 #to create sub-section
 st.subheader('Select a topic')
 user_topic= st.selectbox(label='Select a topic',options=my_Topic)
 
 if st.checkbox('Filier the data'):
     st.dataframe(df[df['topic_list'] == user_topic])
-### Task3
 ### Plotting
-### Display a scatterplot: bill_length_mm vs bill_depth_mm
-
-# uncomment from 61 to 70
-#### section for ploting in the app
 st.markdown('---')
-# Create the scatter plot
-import plotly.graph_objs as go
-import plotly.express as px
-import streamlit as st
 
-# Assuming you have loaded your data into the 'df' DataFrame
-
-# Create the scatter plot
+######################  Create the scatter plot
+st.markdown('---')
 st.header('Vector Data Analysis')
 
 fig = px.scatter_3d(df, x='x_vector', y='y_vector', z='z_vector',
@@ -86,7 +66,7 @@ fig = px.scatter_3d(df, x='x_vector', y='y_vector', z='z_vector',
                      color='topic_list',
                      labels={'x_vector': 'X Vector', 'y_vector': 'Y Vector', 'z_vector': 'Z Vector'},
                      template='plotly_dark',
-                     animation_frame=df.index)  # Add animation_frame to enable rotation
+                     )  # Add animation_frame to enable rotation
 
 fig.update_traces(marker=dict(size=3, opacity=0.5), selector=dict(mode='markers'))
 
@@ -99,75 +79,53 @@ fig.update_layout(
         yaxis_tickfont_size=12,
         zaxis_tickfont_size=12,
     ),
-    font=dict(size=20),
+    font=dict(size=1),
     margin=dict(l=0, r=0, b=0, t=40),
     height=800,
-    width=1800,
+    width=1200,
 )
 
 st.plotly_chart(fig)
+st.markdown('---')
+
+
+
 
 ######################  Topics over time
-st.markdown('---')
 st.header('Topics over time')
 
+# Convert the year column to a numeric format
 df['year'] = pd.to_datetime(df['year']).dt.year
-df=df.sort_values(by='year',ascending=True)
- # Create the scatter plot
-plotly_fig = px.scatter(data_frame=df.loc[df["year"]>=1900],
-                 x="topic_code",
-                 y="citationCount",
-                 animation_frame="year",
-                 color="z_vector",
-                 hover_name="topic_list",
-                 size="citationCount",
-                 size_max=450)
+
+# Sort the DataFrame by year in ascending order
+df = df.sort_values(by='year', ascending=True)
+
+# Create a select box to filter data by topic with "All Topics" as the default choice
+selected_topic = st.selectbox('Select a topic to filter the data', ['All Topics'] + list(df['topic_list'].unique()))
+
+# Filter the data based on the selected topic
+if selected_topic != 'All Topics':
+    filtered_df = df[df['topic_list'] == selected_topic]
+else:
+    filtered_df = df  # Show all topics
+
+# Create the scatter plot
+fig2 = px.scatter(data_frame=filtered_df[filtered_df["year"] >= 1900],
+                  x="topic_code",
+                  y="citationCount",
+                  animation_frame="year",
+                  color="z_vector",
+                  hover_name="topic_list",
+                  size="citationCount",
+                  size_max=450)
 
 # Update the y-axis range
-fig.update_yaxes(range=[0, 400])
+fig2.update_yaxes(range=[0, 400])
 
-# Show the updated figure
-fig.show()
+# Show the updated figure within the Streamlit app
+st.plotly_chart(fig2)
 
-st.plotly_chart(plotly_fig)
 
-# ### Click on X in the figure-window that pop up
-st.markdown('---')
-# df = pd.read_csv('data/topified_vectorized_Science_1900_2023_cleaned_up.csv')
-
-# # Group by fieldsOfStudy and count the number of publications in each field
-# field_counts = df['fieldsOfStudy'].value_counts().reset_index()
-# field_counts.columns = ['Field of Study', 'Count']
-
-# # Create an interactive bar chart using Plotly Express
-# fig1 = px.bar(field_counts, x='Count', y='Field of Study', orientation='h',
-#              title='Distribution of Publications Across Fields of Study',
-#              labels={'Field of Study': 'Field of Study', 'Count': 'Count'},
-#              template='plotly_dark')
-
-# # Customize the appearance of the chart
-# fig1.update_traces(marker_color='#1f77b4', opacity=0.7)
-
-# # Adjust the layout for better visibility
-# fig1.update_layout(
-#     xaxis_title='Count',
-#     yaxis_title='Field of Study',
-#     xaxis_tickfont_size=12,
-#     yaxis_tickfont_size=12,
-#     font=dict(size=14),
-#     showlegend=False,
-#     height=600,  # Increase the chart height for better visibility
-# )
-
-# # Show the interactive chart
-# fig1.show()
-
-# st.plotly_chart(fig1)
-
-# print(bill_length_mean)
-# st.title('bill_length_mean')
-
-# st.bar_chart(bill_length_mean)
 
 # # plotting a source
 st.markdown('---')

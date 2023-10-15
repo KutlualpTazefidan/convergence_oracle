@@ -5,6 +5,8 @@ import io
 import PIL
 import base64
 import streamlit as st
+
+
 pivoted_data = pd.read_csv('C:/Users/sa3id/spiced/CS/convergence_oracle/Playground_SB/Topified_vectorized_Science1900_2023/web/pages/pivoted_data.csv')
 
 st.header('Forcasted saved Data')

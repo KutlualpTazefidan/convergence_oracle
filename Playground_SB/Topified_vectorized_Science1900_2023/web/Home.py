@@ -18,19 +18,15 @@ from wordcloud import WordCloud
 import plotly.io as pio
 import plotly.graph_objects as go
 
-## Data exploration
+def main():
+    st.title("Home")
+    # Add content for the Home page here
 
-### Task1:
-### Load the 'penguins_pimped.csv' file into a data frame df
-### (it is under the folder data/ )
-### Print out 5 random sample from df 
-### (Hint: apply the function sample() on df)
 
 st.header('Convergence Oracle')
 st.image('output.png')
 # st.write('wrire whatever you want')
-
-
+st.markdown('---')
 df = pd.read_csv('C:/Users/sa3id/spiced/test/convergence_oracle/Playground_SB/Topified_vectorized_Science1900_2023/web/data/topified_vectorized_Science_1900_2023_cleaned_up.csv')
 df_sample = df.sample(5)
 
@@ -55,7 +51,7 @@ user_topic= st.selectbox(label='Select a topic',options=my_Topic)
 if st.checkbox('Filier the data'):
     st.dataframe(df[df['topic_list'] == user_topic])
 ### Plotting
-st.markdown('---')
+
 
 ######################  Create the scatter plot
 st.markdown('---')
@@ -89,8 +85,6 @@ st.plotly_chart(fig)
 st.markdown('---')
 
 
-
-
 ######################  Topics over time
 st.header('Topics over time')
 
@@ -109,15 +103,17 @@ if selected_topic != 'All Topics':
 else:
     filtered_df = df  # Show all topics
 
+colors = px.colors.qualitative.Set1
 # Create the scatter plot
 fig2 = px.scatter(data_frame=filtered_df[filtered_df["year"] >= 1900],
                   x="topic_code",
                   y="citationCount",
                   animation_frame="year",
-                  color="z_vector",
+                  color='topic_code',
+                  color_discrete_sequence=colors,
                   hover_name="topic_list",
                   size="citationCount",
-                  size_max=450)
+                  size_max=750)
 
 # Update the y-axis range
 fig2.update_yaxes(range=[0, 400])

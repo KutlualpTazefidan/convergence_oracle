@@ -6,7 +6,8 @@ from sklearn.metrics import mean_squared_error
 import matplotlib.pyplot as plt
 import numpy as np
 from xgboost import plot_importance
-# Models name
+
+
 model_paths = {
     'monthly_groupby': 'plot_bertopic_data_monthly',
     'yearly_groupby': 'plot_bertopic_data_yearly',

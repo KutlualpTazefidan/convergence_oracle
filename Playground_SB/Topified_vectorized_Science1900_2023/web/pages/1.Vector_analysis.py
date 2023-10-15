@@ -57,5 +57,5 @@ with tempfile.NamedTemporaryFile(delete=False, suffix=".html") as tmpfile:
 
 # Display the HTML file using an iframe
 with open(tmpfile.name, 'r', encoding='utf-8') as html_file:
-    st.write("3D Scatter Plot with rotation and zoom (scroll to zoom in/out and rotate):")
+    st.write("3D Scatter Plot for the data 'Clustered'")
     st.components.v1.html(html_file.read(), width=1000, height=600)

@@ -13,9 +13,7 @@ fig = px.scatter_3d(df, x='x_vector', y='y_vector', z='z_vector',
                      title='3D Scatter Plot for Vectors',
                      color='topic_list',
                      labels={'x_vector': 'X Vector', 'y_vector': 'Y Vector', 'z_vector': 'Z Vector'},
-                     template='plotly_dark',
-                
-
+                     template='plotly_dark'              
                      )
 
 fig.update_traces(marker=dict(size=3, opacity=0.5), selector=dict(mode='markers'))
@@ -36,7 +34,7 @@ fig.update_layout(
     font=dict(size=1),
     margin=dict(l=0, r=0, b=0, t=0),
     height=700,
-    width=900,  # Adjust width to center the plot
+    width=900,  
 
 )
 

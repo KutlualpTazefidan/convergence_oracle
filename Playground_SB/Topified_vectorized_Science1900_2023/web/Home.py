@@ -64,7 +64,7 @@ fig = px.scatter_3d(df, x='x_vector', y='y_vector', z='z_vector',
                      template='plotly_dark',
                      )  # Add animation_frame to enable rotation
 
-fig.update_traces(marker=dict(size=3, opacity=0.5), selector=dict(mode='markers'))
+fig.update_traces(marker=dict(size=1, opacity=0.5), selector=dict(mode='markers'))
 
 fig.update_layout(
     scene=dict(

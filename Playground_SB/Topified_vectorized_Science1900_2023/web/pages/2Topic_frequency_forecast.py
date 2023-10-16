@@ -292,10 +292,18 @@ topic_mapping = dict(zip(unique_topics['topic_code'], unique_topics['topic_list'
 # Create a select box for the user to choose a model
 selected_model = st.selectbox("Select a Model", list(model_paths.keys()))
 
-# Create a select box for the user to choose a topic number
+# # Create a select box for the user to choose a topic number
 selected_topic = st.selectbox("Select a Topic Number", sorted(topic_mapping.values()))
-future_months = st.slider(label='future months', min_value=1, max_value=120)
-future_years = st.slider(label='future years', min_value=1, max_value=10)
+# future_months = st.slider(label='future months', min_value=1, max_value=120)
+# future_years = st.slider(label='future years', min_value=1, max_value=10)
+
+# Check if the selected model is "monthly_groupby" to show the slider
+if selected_model == "monthly_groupby":
+    future_months = st.slider(label='Future Months', min_value=1, max_value=120)
+
+# Check if the selected model is "yearly_groupby" to show the slider
+if selected_model == "yearly_groupby":
+    future_years = st.slider(label='Future Years', min_value=1, max_value=10)
 
 # Check if the selected topic exists in the list of topics
 if selected_topic in aws_dfs['topic_code'].unique():
@@ -303,7 +311,7 @@ if selected_topic in aws_dfs['topic_code'].unique():
     model_select_key = "model_select"
     topic_select_key = "topic_select"
 
-    # Uncomment this section to create a button to trigger the prediction
+    # this section to create a button to trigger the prediction
 if st.button("Predict"):
     # Get the selected topic code based on the user's selection
     selected_topic_code = [k for k, v in topic_mapping.items() if v == selected_topic][0]
@@ -311,12 +319,11 @@ if st.button("Predict"):
     # Check if the selected model is valid and call the corresponding function
     if selected_model in model_paths:
         if selected_model == 'monthly_groupby':
-            plot_bertopic_data_monthly_freq(selected_topic_code,future_months, topic_mapping)
+            plot_bertopic_data_monthly_freq(selected_topic_code, future_months, topic_mapping)
         elif selected_model == 'yearly_groupby':
-            plot_bertopic_data_yearly_freq(selected_topic_code, future_years,topic_mapping)
+            plot_bertopic_data_yearly_freq(selected_topic_code, future_years, topic_mapping)
     else:
         st.write(f"Model {selected_model} not found in model_paths.")
-
 
 
 

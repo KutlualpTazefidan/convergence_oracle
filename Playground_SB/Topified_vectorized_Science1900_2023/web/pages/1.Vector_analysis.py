@@ -16,7 +16,7 @@ fig = px.scatter_3d(df, x='x_vector', y='y_vector', z='z_vector',
                      template='plotly_dark'              
                      )
 
-fig.update_traces(marker=dict(size=3, opacity=0.5), selector=dict(mode='markers'))
+fig.update_traces(marker=dict(size=1, opacity=0.5), selector=dict(mode='markers'))
 
 fig.update_layout(
     scene=dict(
@@ -27,14 +27,14 @@ fig.update_layout(
         yaxis_tickfont_size=12,
         zaxis_tickfont_size=12,
         camera=dict(
-            eye=dict(x=-1.25, y=2, z=0.5),
+            eye=dict(x=0, y=0, z=0),
             center=dict(x=0, y=0, z=0)
         )
     ),
     font=dict(size=1),
     margin=dict(l=0, r=0, b=0, t=0),
-    height=700,
-    width=900,  
+    height=800,
+    width=1400,  
 
 )
 
@@ -45,8 +45,8 @@ def rotate_z(x, y, z, theta):
 
 frames = []
 
-for t in np.arange(0, 6.26, 0.1):
-    xe, ye, ze = rotate_z(-1.25, 2, 0.5, -t)
+for t in np.arange(0, 24, 0.1):
+    xe, ye, ze = rotate_z(1, 1, 0.5, -t)
     frames.append(go.Frame(layout=dict(scene_camera_eye=dict(x=xe, y=ye, z=ze))))
 
 fig.frames = frames
@@ -58,4 +58,4 @@ with tempfile.NamedTemporaryFile(delete=False, suffix=".html") as tmpfile:
 # Display the HTML file using an iframe
 with open(tmpfile.name, 'r', encoding='utf-8') as html_file:
     st.write("3D Scatter Plot for the data 'Clustered'")
-    st.components.v1.html(html_file.read(), width=1000, height=600)
+    st.components.v1.html(html_file.read(), width=2000, height=1200)

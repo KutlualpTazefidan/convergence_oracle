@@ -45,7 +45,7 @@ def rotate_z(x, y, z, theta):
 
 frames = []
 
-for t in np.arange(0, 24, 0.1):
+for t in np.arange(0, 24, 0.01):
     xe, ye, ze = rotate_z(1, 1, 0.5, -t)
     frames.append(go.Frame(layout=dict(scene_camera_eye=dict(x=xe, y=ye, z=ze))))
 
